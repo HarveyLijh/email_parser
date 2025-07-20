@@ -161,6 +161,11 @@
             white-space: nowrap;
         }
 
+        /* Style for recovery email column (last column) */
+        td:last-child:not(.empty-state) {
+            background-color: #848484;
+        }
+
         td:not(.row-number):hover {
             background-color: #e3f2fd !important;
             transform: scale(1.02);
@@ -226,6 +231,7 @@
                 <textarea id="dataInput"></textarea>
             </div>
             <button class="btn" onclick="loadData()">📋 Load Data</button>
+            <button class="btn" onclick="downloadCSV()" style="margin-left: 10px; background: linear-gradient(135deg, #28a745 0%, #218838 100%);">📥 Download CSV</button>
         </div>
 
         <div class="legend">
@@ -279,6 +285,41 @@
         let copiedCells = new Set();
         let lastCopiedCell = null;
         let totalCells = 0;
+
+        // Load saved state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedInput = localStorage.getItem('dataInput');
+            const savedCopiedCells = JSON.parse(localStorage.getItem('copiedCells')) || [];
+            const lastCopiedIndex = localStorage.getItem('lastCopiedIndex');
+            
+            if (savedInput) {
+                document.getElementById('dataInput').value = savedInput;
+                loadData();
+                
+                // Restore copied cells highlights after a short delay to ensure table is loaded
+                setTimeout(() => {
+                    const allCells = document.querySelectorAll('td:not(.row-number):not(.empty-state)');
+                    savedCopiedCells.forEach(index => {
+                        const cell = allCells[index];
+                        if (cell) {
+                            cell.classList.add('copied');
+                            copiedCells.add(cell);
+                        }
+                    });
+
+                    // Restore last copied cell highlight
+                    if (lastCopiedIndex !== null) {
+                        const cell = allCells[lastCopiedIndex];
+                        if (cell) {
+                            cell.classList.add('last-copied');
+                            lastCopiedCell = cell;
+                        }
+                    }
+
+                    updateStats();
+                }, 100);
+            }
+        });
 
         function showToast(message) {
             const toast = document.getElementById('toast');
@@ -339,6 +380,14 @@
             copiedCells.add(cell);
             lastCopiedCell = cell;
 
+            // Save copied cells state
+            const allCells = Array.from(document.querySelectorAll('td:not(.row-number):not(.empty-state)'));
+            const copiedIndices = Array.from(copiedCells).map(cell => allCells.indexOf(cell));
+            localStorage.setItem('copiedCells', JSON.stringify(copiedIndices));
+
+            // Save last copied cell index
+            localStorage.setItem('lastCopiedIndex', allCells.indexOf(cell));
+
             showToast(`Copied: ${text}`);
             updateStats();
         }
@@ -367,11 +416,16 @@
                 return;
             }
 
-            // Clear previous data
+            // Save input to localStorage
+            localStorage.setItem('dataInput', input);
+
+            // Clear previous data and localStorage for highlights
             tableBody.innerHTML = '';
             copiedCells.clear();
             lastCopiedCell = null;
             totalCells = 0;
+            localStorage.removeItem('lastCopiedIndex');
+            localStorage.setItem('copiedCells', JSON.stringify([]));
 
             const lines = input.split('\n').filter(line => line.trim());
             
@@ -425,10 +479,49 @@
             showToast(`Loaded ${lines.length} rows successfully!`);
         }
 
-        // Auto-load data when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-        });
+        function downloadCSV() {
+            const rows = document.querySelectorAll('#tableBody tr:not(.empty-state)');
+            if (rows.length === 0) {
+                showToast('No data to download!');
+                return;
+            }
+
+            // CSV Headers
+            const headers = [
+                'Row',
+                'Email to Add',
+                'Password',
+                'Operation Email',
+                'URL 1',
+                'URL 2',
+                'Recovery Email'
+            ];
+
+            // Create CSV content
+            let csvContent = headers.join(',') + '\n';
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const rowData = Array.from(cells).map(cell => {
+                    // Escape special characters and wrap in quotes
+                    const content = cell.textContent.replace(/"/g, '""');
+                    return `"${content}"`;
+                });
+                csvContent += rowData.join(',') + '\n';
+            });
+
+            // Create and trigger download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'data_export.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSV downloaded successfully!');
+        }
     </script>
 </body>
 </html>
