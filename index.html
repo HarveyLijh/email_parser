@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel-like Data Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .input-section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .legend {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .row-number {
+            background: #f8f9fa !important;
+            color: #6c757d;
+            font-weight: 600;
+            text-align: center;
+            width: 50px;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        td:not(.row-number):hover {
+            background-color: #e3f2fd !important;
+            transform: scale(1.02);
+        }
+
+        .copied {
+            background-color: #c8e6c9 !important;
+            color: #2e7d32;
+        }
+
+        .last-copied {
+            background-color: #ffecb3 !important;
+            color: #f57f17;
+            box-shadow: 0 0 0 2px #ffc107;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .stats {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Excel-like Data Manager</h1>
+            <p>Paste your data and click cells to copy values to clipboard</p>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="dataInput">Paste your data (format: email|password|recovery_email per line):</label>
+                <textarea id="dataInput"></textarea>
+            </div>
+            <button class="btn" onclick="loadData()">📋 Load Data</button>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffffff;"></div>
+                <span>Not copied</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #c8e6c9;"></div>
+                <span>Copied</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffecb3; box-shadow: 0 0 0 2px #ffc107;"></div>
+                <span>Last copied</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="row-number">#</th>
+                        <th>EMAIL TO ADD</th>
+                        <th>PASSWORD</th>
+                        <th>OPERATION EMAIL</th>
+                        <th>URL 1</th>
+                        <th>URL 2</th>
+                        <th>RECOVERY EMAIL</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div>📋</div>
+                            <p>Click "Load Data" to populate the table with your data.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats">
+            <span id="rowCount">Rows: 0</span>
+            <span id="copiedCount">Copied: 0</span>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let copiedCells = new Set();
+        let lastCopiedCell = null;
+        let totalCells = 0;
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function updateStats() {
+            const rows = document.querySelectorAll('#tableBody tr:not(.empty-state)').length;
+            document.getElementById('rowCount').textContent = `Rows: ${rows}`;
+            document.getElementById('copiedCount').textContent = `Copied: ${copiedCells.size}/${totalCells}`;
+        }
+
+        function copyToClipboard(text, cell) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    handleCopySuccess(text, cell);
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(text, cell);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text, cell);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text, cell) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                handleCopySuccess(text, cell);
+            } catch (err) {
+                showToast('Failed to copy to clipboard');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function handleCopySuccess(text, cell) {
+            // Remove last-copied class from previous cell
+            if (lastCopiedCell) {
+                lastCopiedCell.classList.remove('last-copied');
+            }
+
+            // Add copied class and track
+            cell.classList.add('copied');
+            cell.classList.add('last-copied');
+            copiedCells.add(cell);
+            lastCopiedCell = cell;
+
+            showToast(`Copied: ${text}`);
+            updateStats();
+        }
+
+        function createCell(content, isClickable = true) {
+            const cell = document.createElement('td');
+            cell.textContent = content;
+            cell.title = content; // Tooltip for long content
+            
+            if (isClickable) {
+                cell.addEventListener('click', () => {
+                    copyToClipboard(content, cell);
+                });
+                totalCells++;
+            }
+            
+            return cell;
+        }
+
+        function loadData() {
+            const input = document.getElementById('dataInput').value.trim();
+            const tableBody = document.getElementById('tableBody');
+            
+            if (!input) {
+                showToast('Please paste some data first!');
+                return;
+            }
+
+            // Clear previous data
+            tableBody.innerHTML = '';
+            copiedCells.clear();
+            lastCopiedCell = null;
+            totalCells = 0;
+
+            const lines = input.split('\n').filter(line => line.trim());
+            
+            if (lines.length === 0) {
+                tableBody.innerHTML = `
+                    <tr class="empty-state">
+                        <td colspan="7" class="empty-state">
+                            <div>❌</div>
+                            <p>No valid data found. Please check your format.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            lines.forEach((line, index) => {
+                const parts = line.split('|').map(part => part.trim());
+                
+                if (parts.length >= 3) {
+                    const row = document.createElement('tr');
+                    
+                    // Row number (not clickable)
+                    const rowNumber = document.createElement('td');
+                    rowNumber.className = 'row-number';
+                    rowNumber.textContent = index + 1;
+                    row.appendChild(rowNumber);
+                    
+                    // EMAIL TO ADD
+                    row.appendChild(createCell(parts[0]));
+                    
+                    // PASSWORD
+                    row.appendChild(createCell(parts[1]));
+                    
+                    // OPERATION EMAIL (fixed)
+                    row.appendChild(createCell('operations.kolectai@gmail.com'));
+                    
+                    // URL 1 (fixed)
+                    row.appendChild(createCell('http://localhost:3000/api/auth/gmail/callback'));
+                    
+                    // URL 2 (fixed)
+                    row.appendChild(createCell('https://kolect.ai/api/auth/gmail/callback'));
+                    
+                    // RECOVERY EMAIL
+                    row.appendChild(createCell(parts[2]));
+                    
+                    tableBody.appendChild(row);
+                }
+            });
+
+            updateStats();
+            showToast(`Loaded ${lines.length} rows successfully!`);
+        }
+
+        // Auto-load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
+    </script>
+</body>
+</html>
