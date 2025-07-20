@@ -285,6 +285,7 @@
         let copiedCells = new Set();
         let lastCopiedCell = null;
         let totalCells = 0;
+        let toastTimer = null; // timer for toast visibility
 
         // Load saved state on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -325,8 +326,15 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.classList.add('show');
-            setTimeout(() => {
+
+            // Clear any existing timer to ensure consistent visibility duration
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+            }
+
+            toastTimer = setTimeout(() => {
                 toast.classList.remove('show');
+                toastTimer = null;
             }, 2000);
         }
 
