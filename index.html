@@ -449,7 +449,10 @@
                 return;
             }
 
-            lines.forEach((line, index) => {
+            const validLines = lines.filter(line => line.split('|').length >= 3);
+            const rowCount = validLines.length;
+
+            validLines.forEach((line, index) => {
                 const parts = line.split('|').map(part => part.trim());
                 
                 if (parts.length >= 3) {
@@ -467,14 +470,37 @@
                     // PASSWORD
                     row.appendChild(createCell(parts[1]));
                     
-                    // OPERATION EMAIL (fixed)
-                    row.appendChild(createCell('operations.kolectai@gmail.com'));
-                    
-                    // URL 1 (fixed)
-                    row.appendChild(createCell('http://localhost:3000/api/auth/gmail/callback'));
-                    
-                    // URL 2 (fixed)
-                    row.appendChild(createCell('https://kolect.ai/api/auth/gmail/callback'));
+                    // Only add merged cells to the first row
+                    if (index === 0) {
+                        // OPERATION EMAIL (merged cell)
+                        const operationCell = createCell('operations.kolectai@gmail.com');
+                        operationCell.rowSpan = rowCount;
+                        operationCell.style.backgroundColor = '#e8f5e8';
+                        operationCell.style.textAlign = 'center';
+                        operationCell.style.verticalAlign = 'middle';
+                        operationCell.style.fontWeight = '600';
+                        row.appendChild(operationCell);
+                        
+                        // URL 1 (merged cell)
+                        const url1Cell = createCell('http://localhost:3000/api/auth/gmail/callback');
+                        url1Cell.rowSpan = rowCount;
+                        url1Cell.style.backgroundColor = '#e3f2fd';
+                        url1Cell.style.textAlign = 'center';
+                        url1Cell.style.verticalAlign = 'middle';
+                        url1Cell.style.fontWeight = '600';
+                        url1Cell.style.maxWidth = '250px';
+                        row.appendChild(url1Cell);
+                        
+                        // URL 2 (merged cell)
+                        const url2Cell = createCell('https://kolect.ai/api/auth/gmail/callback');
+                        url2Cell.rowSpan = rowCount;
+                        url2Cell.style.backgroundColor = '#fff3e0';
+                        url2Cell.style.textAlign = 'center';
+                        url2Cell.style.verticalAlign = 'middle';
+                        url2Cell.style.fontWeight = '600';
+                        url2Cell.style.maxWidth = '250px';
+                        row.appendChild(url2Cell);
+                    }
                     
                     // RECOVERY EMAIL
                     row.appendChild(createCell(parts[2]));
@@ -484,7 +510,7 @@
             });
 
             updateStats();
-            showToast(`Loaded ${lines.length} rows successfully!`);
+            showToast(`Loaded ${validLines.length} rows successfully!`);
         }
 
         function downloadCSV() {
